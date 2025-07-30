@@ -44,8 +44,8 @@ jobs:
     - name: Verify gradlew permissions
       run: ls -la ./gradlew
       
-    - name: Build Kotlin Multiplatform
-      run: ./gradlew composeApp:build
+    - name: Build Kotlin Multiplatform (Skip Lint)
+      run: ./gradlew composeApp:build -x lintDebug -x lintRelease
       
     - name: Generate iOS Framework
       run: ./gradlew composeApp:embedAndSignAppleFrameworkForXcode

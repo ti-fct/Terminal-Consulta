@@ -87,6 +87,9 @@ class MainActivity : ComponentActivity() {
         if (backPressCount >= REQUIRED_BACK_PRESSES) {
             showExitDialog()
             backPressCount = 0
+        } else {
+            // Não chama super.onBackPressed() para manter o modo kiosk
+            // super.onBackPressed()
         }
     }
     
