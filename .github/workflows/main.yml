@@ -1,0 +1,59 @@
+# .github/workflows/main.yml
+# Workflow para build iOS do Terminal de Consulta
+
+name: iOS Build
+
+on:
+  push:
+    branches: [ "1.0" ]
+  pull_request:
+    branches: [ "1.0" ]
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Build iOS Framework
+      run: ./gradlew composeApp:embedAndSignAppleFrameworkForXcode
+      
+    - name: Build iOS App
+      run: |
+        cd iosApp
+        xcodebuild -workspace iosApp.xcworkspace \
+                   -scheme iosApp \
+                   -configuration Release \
+                   -destination 'generic/platform=iOS' \
+                   -archivePath TerminalConsulta.xcarchive \
+                   archive
+                   
+    - name: Export IPA
+      run: |
+        cd iosApp
+        xcodebuild -exportArchive \
+                   -archivePath TerminalConsulta.xcarchive \
+                   -exportPath . \
+                   -exportOptionsPlist ExportOptions.plist
+                   
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: TerminalConsulta-iOS
+        path: iosApp/*.ipa
