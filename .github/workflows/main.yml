@@ -47,16 +47,44 @@ jobs:
     - name: Build Kotlin Multiplatform (Skip Lint)
       run: ./gradlew composeApp:build -x lintDebug -x lintRelease
       
-    - name: Generate iOS Framework
-      run: ./gradlew composeApp:embedAndSignAppleFrameworkForXcode
+    - name: Set Xcode environment variables
+      run: |
+        echo "CONFIGURATION=Release" >> $GITHUB_ENV
+        echo "SDK_NAME=iphoneos" >> $GITHUB_ENV
+        echo "ARCHS=arm64" >> $GITHUB_ENV
+        echo "TARGET_BUILD_DIR=${{ github.workspace }}/build" >> $GITHUB_ENV
+        echo "FRAMEWORKS_FOLDER_PATH=Frameworks" >> $GITHUB_ENV
+        echo "EXPANDED_CODE_SIGN_IDENTITY=" >> $GITHUB_ENV
+        echo "EXPANDED_CODE_SIGN_IDENTITY_NAME=" >> $GITHUB_ENV
+        echo "OTHER_CODE_SIGN_FLAGS=" >> $GITHUB_ENV
+        
+    - name: Generate iOS Framework for Device
+      run: ./gradlew composeApp:linkReleaseFrameworkIosArm64
+      
+    - name: Generate iOS Framework for Simulator
+      run: ./gradlew composeApp:linkReleaseFrameworkIosSimulatorArm64
+      
+    - name: Create XCFramework
+      run: |
+        mkdir -p build/xcframework
+        if [ -d "composeApp/build/bin/iosArm64/releaseFramework/TerminalConsulta.framework" ] && [ -d "composeApp/build/bin/iosSimulatorArm64/releaseFramework/TerminalConsulta.framework" ]; then
+          xcodebuild -create-xcframework \
+            -framework composeApp/build/bin/iosArm64/releaseFramework/TerminalConsulta.framework \
+            -framework composeApp/build/bin/iosSimulatorArm64/releaseFramework/TerminalConsulta.framework \
+            -output build/xcframework/TerminalConsulta.xcframework
+        else
+          echo "Frameworks not found, listing available files:"
+          find composeApp/build -name "*.framework" -type d
+        fi
       
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: terminal-consulta-ios-framework
         path: |
-          composeApp/build/XCFrameworks/
-          composeApp/build/compose/
+          build/xcframework/
+          composeApp/build/bin/iosArm64/releaseFramework/
+          composeApp/build/bin/iosSimulatorArm64/releaseFramework/
         retention-days: 30
         
     - name: Upload Gradle Build Reports
